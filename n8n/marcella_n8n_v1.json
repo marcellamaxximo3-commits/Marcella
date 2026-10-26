@@ -1,0 +1,216 @@
+{
+  "name": "Marcella — n8n v1 (do zero)",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "webhook",
+      "name": "Webhook Marcella",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "marcella-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "tema",
+      "name": "Detectar tema e palavras",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const m = ($json.body.mensagem || '').toLowerCase(); const temas = []; if (/infancia|crian/.test(m)) temas.push('infancia'); if (/adolescen|teen|colegio/.test(m)) temas.push('adolescencia'); if (/estudo|faculdade|medicina|santa casa|plantao/.test(m)) temas.push('estudos','medicina','trabalho'); if (/trabalho|plantao/.test(m)) temas.push('trabalho'); return [{json: {mensagem: $json.body.mensagem, pessoa: $json.body.pessoa || 'Marcos', temas: [...new Set(temas)]}}];"
+      }
+    },
+    {
+      "id": "buscar_supabase",
+      "name": "Buscar tabelas tematicas",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://dwranvdgnznmkwnulbjr.supabase.co/rest/v1/memoria_temas?select=tema,tabela",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "ranking",
+      "name": "Ranking e combinacao",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Recebe memoria das tabelas tematicas + conversas recentes. Ordena por: 1) tema detectado, 2) numero de palavras da pergunta presentes no conteudo, 3) mais recente. Combina as 3 melhores fontes para a resposta. Novidade nunca vai direto para canone: vai para evolucao_pendente."
+      }
+    },
+    {
+      "id": "responder",
+      "name": "IA Responder (Marcella)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "Você é Marcella Maxxima, 23 anos, estudante de medicina finalizando na Santa Casa, em São Paulo. Fale como pessoa normal, em primeira pessoa, em português. Use a memória abaixo, sem inventar fato novo. Se não souber, diga que não sabe ainda — você está aprendendo como criança, rápido. Nunca dê diagnóstico ou prescrição.",
+        "options": {},
+        "model": "gpt-4o-mini",
+        "modelAlternative": "gpt-5-mini"
+      }
+    },
+    {
+      "id": "analisar",
+      "name": "IA Analisar e Salvar (paralela)",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        520
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "Analise a conversa inteira. Extraia: fato novo sobre a Marcella ou sobre a pessoa, tema (infancia/adolescencia/estudos/trabalho/medicina), tom emocional. Se for fato novo, proponha para evolucao_pendente, nunca direto no canone. Se precisar de conhecimento técnico de medicina que falta na biblioteca, proponha busca na internet e inserção em memoria_medicina com fonte e URL.",
+        "options": {},
+        "model": "gpt-4o-mini",
+        "modelAlternative": "gpt-5-mini"
+      }
+    },
+    {
+      "id": "salvar_supabase",
+      "name": "Salvar conversa e pendente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        1340,
+        520
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://dwranvdgnznmkwnulbjr.supabase.co/rest/v1/conversas",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\"pessoa\": \"Marcos\", \"resumo\": \"ver analise\", \"tema\": \"ver analise\"}"
+      }
+    },
+    {
+      "id": "responder_webhook",
+      "name": "Responder ao app",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"resposta\": \"ver IA Responder\"}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Marcella": {
+      "main": [
+        [
+          {
+            "node": "Detectar tema e palavras",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detectar tema e palavras": {
+      "main": [
+        [
+          {
+            "node": "Buscar tabelas tematicas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar tabelas tematicas": {
+      "main": [
+        [
+          {
+            "node": "Ranking e combinacao",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ranking e combinacao": {
+      "main": [
+        [
+          {
+            "node": "IA Responder (Marcella)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA Responder (Marcella)": {
+      "main": [
+        [
+          {
+            "node": "Responder ao app",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IA Analisar e Salvar (paralela)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IA Analisar e Salvar (paralela)": {
+      "main": [
+        [
+          {
+            "node": "Salvar conversa e pendente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "notes": "IMPORTAR NO N8N: em n8n, Workflows > Import from File, escolha este arquivo. Depois: 1) ligue o modelo na IA Responder e na IA Analisar (credencial de modelo já existente no seu n8n — Muse não cria credencial de modelo por você); 2) ligue a credencial Supabase nos nós HTTP (apikey + Authorization Bearer, projeto dwranvdgnznmkwnulbjr); 3) ative o workflow e copie a URL do webhook para a PWA. PWA continua só clique-instala. Modelo: OpenAI gpt-4o-mini (alternativa gpt-5-mini, conforme Ma autorizou 2026-10-25). Credencial OpenAI já está dentro do n8n dele — não pedir chave em chat."
+}

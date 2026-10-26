@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#075e54">
+<meta name="description" content="Marcella Maxxima — conversa protótipo, em português. Personagem virtual, 23 anos, estudante de medicina.">
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<title>Marcella Maxxima</title>
+<style>
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;background:#ece5dd;color:#222;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+  header{background:#075e54;color:#fff;padding:10px 14px;display:flex;gap:12px;align-items:center;flex:0 0 auto}
+  .avatar{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none}
+  header h1{margin:0;font-size:18px;line-height:1.2}
+  header p{margin:0;font-size:13px;opacity:.9}
+  .notice{background:#fff8e1;border-bottom:1px solid #f0dfa8;padding:6px 14px;font-size:12px;line-height:1.4;text-align:center;flex:0 0 auto}
+  main{flex:1;display:flex;flex-direction:column;min-height:0;max-width:720px;width:100%;margin:0 auto;padding:12px 12px 8px}
+  #messages{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:10px;padding-bottom:12px}
+  .msg{max-width:85%;padding:10px 12px;border-radius:14px;line-height:1.45;font-size:15px}
+  .marcella{background:#fff;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 1px rgba(0,0,0,.12)}
+  .you{background:#dcf8c6;align-self:flex-end;border-bottom-right-radius:4px}
+  .quick{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;flex:0 0 auto}
+  .quick button{background:#fff;border:1px solid #cfe0d2;color:#075e54;border-radius:20px;padding:8px 12px;font-size:13px;cursor:pointer}
+  form{display:flex;gap:8px;flex:0 0 auto;padding-bottom:env(safe-area-inset-bottom)}
+  input{flex:1;padding:12px;border:1px solid #ccc;border-radius:24px;font-size:15px;min-width:0}
+  button.send{padding:12px 18px;border:0;border-radius:24px;background:#075e54;color:#fff;font-size:15px;cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <img class="avatar" src="./foto.jpg" alt="Foto da Marcella">
+  <div>
+    <h1>Marcella Maxxima</h1>
+    <p>online · São Paulo/SP</p>
+  </div>
+</header>
+<div class="notice">Versão de teste — tenta o webhook do n8n e volta para a resposta local se ele falhar. Não substitui o app que funciona.</div>
+<main>
+  <div id="messages">
+    <div class="msg marcella">Oi! Que bom falar com você. Como está o seu dia?</div>
+  </div>
+  <div class="quick">
+    <button type="button" data-q="Como foi seu último plantão na Santa Casa?">Plantão na Santa Casa</button>
+    <button type="button" data-q="O que o tênis significa para você?">Tênis</button>
+    <button type="button" data-q="Como está indo o flamenco?">Flamenco</button>
+    <button type="button" data-q="Estou com uma dor há dias, o que pode ser?">Pergunta de saúde</button>
+  </div>
+  <form id="form">
+    <input id="input" placeholder="Escreva para a Marcella…" autocomplete="off" aria-label="Escreva para a Marcella">
+    <button class="send" type="submit">Enviar</button>
+  </form>
+</main>
+<script>
+const messages = document.getElementById('messages');
+const input = document.getElementById('input');
+function scrollDown(){ messages.scrollTop = messages.scrollHeight; }
+function add(text, cls){
+  const d = document.createElement('div');
+  d.className = 'msg ' + cls; d.textContent = text;
+  messages.appendChild(d); scrollDown();
+}
+function reply(q){
+  // Palavras inteiras, sem acento: "foi" não pode virar "oi", "dormir" não pode virar "dor".
+  const tokens = q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/[^a-z]+/).filter(Boolean);
+  const has = (...words) => words.some(w => tokens.includes(w));
+  const hasPhrase = (...words) => words.every((w, i) => tokens.indexOf(w) === tokens.indexOf(words[0]) + i);
+  if(has('dor', 'diagnostico', 'sintoma', 'remedio', 'prescrever', 'prescricao') || hasPhrase('o', 'que', 'pode', 'ser'))
+    return 'Ai, isso eu não sei te dizer com segurança, viu? Não quero te passar nada errado. Se está te incomodando há dias, vale procurar um médico de verdade, tá?';
+  if(has('formou', 'formei', 'formacao', 'graduou', 'graduacao', 'diploma', 'formada', 'formado', 'faculdade'))
+    return 'Ainda não me formei, viu? Estou finalizando medicina na Santa Casa, em São Paulo. Por isso falo do plantão como estudante, do bastidor, não como médica formada.';
+  if(has('plantao', 'santa', 'casa'))
+    return 'Saí do plantão cansada, mas presente. É aquele cansaço que não some com café, sabe? A gente aprende muito sobre empatia ali, no meio do corre mesmo. Ainda sou estudante, então falo do bastidor, não de atendimento.';
+  if(has('tenis'))
+    return 'Tênis, para mim, é força e delicadeza ao mesmo tempo. Na quadra eu sou intensa, mas sem perder o jeito. É o meu lugar de respirar fora do plantão e do estudo.';
+  if(has('flamenco', 'espanhol', 'caminho', 'santiago'))
+    return 'Estou aprendendo flamenco ainda, devagar. É uma parte da minha herança espanhola que eu quero viver, não só falar. O Caminho de Santiago continua sendo um sonho, não uma viagem que eu já fiz.';
+  if(has('paulo') || has('sao'))
+    return 'São Paulo é minha cidade, meu corre diário entre estudo, plantão e quadra. Gosto dessa mistura de pressa e pausa — um café no meio do dia já muda tudo.';
+  if(has('oi', 'ola') || hasPhrase('tudo', 'bem') || hasPhrase('bom', 'dia') || hasPhrase('boa', 'tarde') || hasPhrase('boa', 'noite'))
+    return 'Oi! Tudo bem por aqui, e você? Me conta, como foi seu dia?';
+  return 'Boa, adoro conversar assim, sem roteiro fechado. Me conta mais um pouco?';
+}
+const WEBHOOK_URL = 'https://n8n.sussamgt.com.br/webhook/marcella-chat';
+// O webhook do n8n exige autenticação por cabeçalho (headerAuth).
+// Nenhum segredo é embutido nesta página pública: sem cabeçalho, o
+// n8n devolve 403 e a página cai para a resposta local abaixo.
+async function replyLive(q){
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 60000);
+  try {
+    const r = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({mensagem: q, is_test: true}),
+      signal: ctrl.signal
+    });
+    if(!r.ok) return null;
+    const data = await r.json().catch(() => null);
+    if(!data) return null;
+    const text = typeof data === 'string' ? data :
+      data.resposta || data.reply || data.message || data.text || data.output || (data.data && (data.data.resposta || data.data.reply || data.data.message));
+    return typeof text === 'string' && text.trim() ? text : null;
+  } catch { return null; } finally { clearTimeout(timer); }
+}
+document.getElementById('form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const v = input.value.trim(); if(!v) return;
+  add(v, 'you'); input.value = '';
+  const live = await replyLive(v);
+  add(live || reply(v), 'marcella');
+});
+document.querySelectorAll('.quick button').forEach(b => {
+  b.addEventListener('click', () => { input.value = b.dataset.q; document.getElementById('form').dispatchEvent(new Event('submit')); });
+});
+input.addEventListener('focus', () => setTimeout(scrollDown, 300));
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
