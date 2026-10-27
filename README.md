@@ -15,6 +15,14 @@ A conversa ao vivo com memória vive no n8n + Supabase — ver `ARQUITETURA_KISS
 - `CAMINHO_DAS_PEDRAS.md` e `resumo_projeto_marcella.md` — processo e histórico.
 - `interface/`, `fotos/`, `teste_voz_01.md`, `uma_semana_com_a_marcella.md` — protótipo, referências e exemplos.
 
+## Deploy na VPS (Easypanel / Docker)
+
+O `Dockerfile` na raiz do repositório constrói uma imagem nginx:alpine que serve
+só a pasta `pwa/` na porta 80. É o que o Easypanel precisa para o build:
+`docker build -t marcella .` e depois rodar a imagem expondo a porta 80.
+Se o build falhar com "no such file or directory" para o Dockerfile, o
+repositório está desatualizado — sincronize com o `main` antes de rebuildar.
+
 ## Segurança — ler antes de subir na VPS
 
 Nenhum segredo (senha, chave de API, token) está neste repositório, e nenhum deve ser
